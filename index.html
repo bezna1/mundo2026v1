@@ -1,37 +1,19 @@
 <!doctype html>
 <html lang="pl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" />
-  <meta name="theme-color" content="#0d1d35" />
-  <title>Mundial Typer · MŚ 2026</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div class="page-bg" aria-hidden="true"></div>
-  <div class="app-shell">
-    <header class="hero">
-      <div class="hero-text">
-        <p class="eyebrow">MŚ 2026 &nbsp;·&nbsp; typowanie znajomych</p>
-        <h1>Mundial<br>Typer</h1>
-        <p class="hero-copy">Obstawiaj wyniki, rywalizuj ze znajomymi. Typy blokują się automatycznie przy pierwszym gwizdku.</p>
-      </div>
-      <div class="hero-card" id="heroStatus" aria-label="Status gry"></div>
-    </header>
-
-    <main id="app" class="content" role="main"></main>
-  </div>
-
-  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-
-  <button id="themeToggle" class="theme-toggle" aria-label="Zmień motyw" title="Jasny / ciemny motyw">🌙</button>
-
-  <script src="config.js"></script>
-  <script src="fixtures.js"></script>
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#05050F" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Mundial Typer – typowanie wyników MŚ 2026 dla Twojej grupy znajomych" />
+    <title>Mundial Typer · MŚ 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
