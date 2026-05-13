@@ -1,0 +1,9 @@
+{
+  "name": "mundial-typer",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx --yes serve@14 . --listen tcp://localhost:3000 --no-clipboard",
+    "dev": "npx --yes serve@14 . --listen tcp://localhost:3000 --no-clipboard"
+  }
+}
