@@ -257,33 +257,36 @@ begin
     v_resolution_ok := (v_pred.resolution_prediction is not null and v_pred.resolution_prediction = v_result.resolution);
 
     -- Punkty
+    -- Nowy system:
+    -- exact = 3
+    -- outcome = 1
+    -- knockout: advance = +1, resolution = +1
+    -- bez punktów za różnicę bramek
+    -- bez limitu max 8
     v_points := 0;
-    if not v_is_knockout then
-      if v_exact then v_points := 5;
-      elsif v_outcome_ok and v_diff_ok then v_points := 3;
-      elsif v_outcome_ok then v_points := 2;
-      end if;
-    else
-      if v_exact then v_points := 5;
-      elsif v_outcome_ok and v_diff_ok then v_points := 3;
-      elsif v_outcome_ok then v_points := 2;
-      end if;
-      if v_advance_ok then v_points := v_points + 2; end if;
+
+    if v_exact then
+      v_points := 3;
+    elsif v_outcome_ok then
+      v_points := 1;
+    end if;
+
+    if v_is_knockout then
+      if v_advance_ok then v_points := v_points + 1; end if;
       if v_resolution_ok then v_points := v_points + 1; end if;
-      v_points := least(v_points, 8);
     end if;
 
     v_breakdown := jsonb_build_object(
       'exact', v_exact,
       'outcome', v_outcome_ok,
-      'goal_diff', v_diff_ok,
+      'goal_diff', false,
       'advance', v_advance_ok,
       'resolution', v_resolution_ok,
-      'points_exact', case when v_exact then (case when v_is_knockout then 5 else 5 end) else 0 end,
-      'points_outcome', case when not v_exact and v_outcome_ok then (case when v_diff_ok then 3 else 2 end) else 0 end,
+      'points_exact', case when v_exact then 3 else 0 end,
+      'points_outcome', case when not v_exact and v_outcome_ok then 1 else 0 end,
       'points_diff', 0,
-      'points_advance', case when v_advance_ok then 2 else 0 end,
-      'points_resolution', case when v_resolution_ok then 1 else 0 end
+      'points_advance', case when v_is_knockout and v_advance_ok then 1 else 0 end,
+      'points_resolution', case when v_is_knockout and v_resolution_ok then 1 else 0 end
     );
 
     insert into prediction_scores (
