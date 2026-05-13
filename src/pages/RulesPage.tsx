@@ -33,7 +33,7 @@ export function RulesPage() {
         <CardBody className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <RuleTile points={GROUP_SCORING.exact} label="Dokładny wynik" />
           <RuleTile points={GROUP_SCORING.outcome_and_diff} label="Rezultat i różnica bramek" />
-          <RuleTile points={GROUP_SCORING.outcome} label="Poprawny rezultat 1/X/2" />
+          <RuleTile points={GROUP_SCORING.outcome} label="Poprawny zwycięzca lub remis" />
         </CardBody>
       </Card>
 

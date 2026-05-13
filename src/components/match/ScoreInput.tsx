@@ -46,17 +46,17 @@ export function ScoreInput({
   }
 
   const stepButton =
-    'w-10 h-10 rounded-2xl border border-white/12 bg-white/7 text-lg font-black text-white/72 transition-all hover:border-blue-300/35 hover:text-white active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed'
+    'w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl border border-white/12 bg-white/7 text-lg font-black text-white/72 transition-all hover:border-blue-300/35 hover:text-white active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed'
 
   return (
     <div className="flex flex-col gap-4">
       {/* Score row */}
-      <div className="flex items-center justify-center gap-3 sm:gap-5">
-        <div className="flex flex-col items-center gap-1.5 flex-1">
+      <div className="score-input-row flex items-center justify-center gap-1.5 sm:gap-5">
+        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
           <span className="text-xs font-semibold text-white/56 text-center truncate max-w-full px-1">
             {homeName}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 max-w-full">
             <button
               type="button"
               disabled={disabled}
@@ -76,6 +76,7 @@ export function ScoreInput({
               disabled={disabled}
               className={cn(
                 'score-input',
+                homeGoals !== '' && 'score-input-selected',
                 disabled && 'opacity-50 cursor-not-allowed'
               )}
               placeholder="0"
@@ -92,15 +93,15 @@ export function ScoreInput({
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 shrink-0">
           <span className="premium-heading text-3xl font-extrabold text-white/24 mt-7 hidden sm:block">:</span>
         </div>
 
-        <div className="flex flex-col items-center gap-1.5 flex-1">
+        <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
           <span className="text-xs font-semibold text-white/56 text-center truncate max-w-full px-1">
             {awayName}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 max-w-full">
             <button
               type="button"
               disabled={disabled}
@@ -120,6 +121,7 @@ export function ScoreInput({
               disabled={disabled}
               className={cn(
                 'score-input',
+                awayGoals !== '' && 'score-input-selected',
                 disabled && 'opacity-50 cursor-not-allowed'
               )}
               placeholder="0"

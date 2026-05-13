@@ -21,16 +21,22 @@ import type {
 } from '@/types'
 
 const DEMO_PREFIX = 'mt_demo_'
-const DEMO_GROUP_ID = 'demo-group-mundial2026'
 const DEMO_INVITE_CODE = 'demo'
 const DEMO_OWNER_ID = 'demo-owner'
+const DEMO_VIRTUAL_PLAYERS = [
+  'Ania', 'Bartek', 'Celina', 'Darek', 'Ela',
+  'Filip', 'Gosia', 'Hubert', 'Iga', 'Jacek',
+  'Kasia', 'Leon', 'Maja', 'Norbert', 'Olek',
+  'Patrycja', 'Rafał', 'Sara', 'Tomek', 'Zuza',
+] as const
 
-interface DemoAccount {
+export interface DemoAccount {
   id: string
   groupSlug: string
   nickname: string
   password: string
   role: 'player' | 'admin' | 'owner'
+  approved?: boolean
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -52,7 +58,7 @@ function normalizedNickname(value: string): string {
 
 function getAccounts(): DemoAccount[] {
   const accounts = readJson<DemoAccount[]>('accounts', [])
-  if (accounts.length > 0) return accounts
+  if (accounts.length > 0) return ensureVirtualDemoAccounts(accounts, getDefaultGroupSlug())
 
   const seeded: DemoAccount[] = [
     {
@@ -61,6 +67,7 @@ function getAccounts(): DemoAccount[] {
       nickname: 'Admin',
       password: 'admin123',
       role: 'owner',
+      approved: true,
     },
     {
       id: 'demo-player-ola',
@@ -68,6 +75,7 @@ function getAccounts(): DemoAccount[] {
       nickname: 'Ola',
       password: 'demo123',
       role: 'player',
+      approved: true,
     },
     {
       id: 'demo-player-kuba',
@@ -75,18 +83,82 @@ function getAccounts(): DemoAccount[] {
       nickname: 'Kuba',
       password: 'demo123',
       role: 'player',
+      approved: true,
     },
   ]
-  writeJson('accounts', seeded)
-  return seeded
+  const accountsWithVirtualPlayers = ensureVirtualDemoAccounts(seeded, getDefaultGroupSlug())
+  writeJson('accounts', accountsWithVirtualPlayers)
+  return accountsWithVirtualPlayers
 }
 
 function saveAccounts(accounts: DemoAccount[]): void {
   writeJson('accounts', accounts)
 }
 
+function virtualPlayerId(groupSlug: string, index: number): string {
+  return `demo-virtual-${normalizeRoomPin(groupSlug)}-${String(index + 1).padStart(2, '0')}`
+}
+
+function ensureVirtualDemoAccounts(accounts: DemoAccount[], groupSlug: string): DemoAccount[] {
+  const roomPin = normalizeRoomPin(groupSlug)
+  const groupId = demoGroupIdFromSlug(roomPin)
+  const existingIds = new Set(accounts.map((account) => account.id))
+  const existingNames = new Set(
+    accounts
+      .filter((account) => demoGroupIdFromSlug(account.groupSlug) === groupId)
+      .map((account) => normalizedNickname(account.nickname))
+  )
+
+  const virtualAccounts = DEMO_VIRTUAL_PLAYERS.flatMap((nickname, index): DemoAccount[] => {
+    const id = virtualPlayerId(roomPin, index)
+    if (existingIds.has(id) || existingNames.has(normalizedNickname(nickname))) return []
+
+    return [{
+      id,
+      groupSlug: roomPin,
+      nickname,
+      password: 'demo123',
+      role: 'player',
+      approved: true,
+    }]
+  })
+
+  const nextAccounts = virtualAccounts.length > 0 ? [...accounts, ...virtualAccounts] : accounts
+  if (virtualAccounts.length > 0) writeJson('accounts', nextAccounts)
+  return nextAccounts
+}
+
+function demoOwnerIdFromSlug(slug: string): string {
+  const roomPin = normalizeRoomPin(slug)
+  return roomPin === normalizeRoomPin(getDefaultGroupSlug()) ? DEMO_OWNER_ID : `demo-owner-${roomPin}`
+}
+
+function ensureDemoRoomAccounts(groupSlug: string): DemoAccount[] {
+  const roomPin = normalizeRoomPin(groupSlug)
+  const accounts = getAccounts()
+  const hasRoomAdmin = accounts.some(
+    (account) =>
+      demoGroupIdFromSlug(account.groupSlug) === demoGroupIdFromSlug(roomPin) &&
+      normalizedNickname(account.nickname) === 'admin'
+  )
+
+  if (hasRoomAdmin) return ensureVirtualDemoAccounts(accounts, roomPin)
+
+  const roomAdmin: DemoAccount = {
+    id: demoOwnerIdFromSlug(roomPin),
+    groupSlug: roomPin,
+    nickname: 'Admin',
+    password: 'admin123',
+    role: 'owner',
+    approved: true,
+  }
+  const nextAccounts = [...accounts, roomAdmin]
+  saveAccounts(nextAccounts)
+  return ensureVirtualDemoAccounts(nextAccounts, roomPin)
+}
+
 export function getDefaultGroupSlug(): string {
-  return import.meta.env.VITE_DEFAULT_GROUP_SLUG ?? 'mundial2026'
+  return import.meta.env.VITE_DEFAULT_GROUP_SLUG ?? '123456'
 }
 
 export function getDemoInviteCode(): string {
@@ -97,16 +169,38 @@ export function isDemoMode(): boolean {
   return !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY
 }
 
+function normalizeRoomPin(slug: string): string {
+  const digits = slug.replace(/\D/g, '')
+  if (digits.length === 6) return digits
+  if (slug === 'mundial2026') return '123456'
+  let hash = 0
+  for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) % 1_000_000
+  return String(hash).padStart(6, '0')
+}
+
+function demoGroupIdFromSlug(slug: string): string {
+  return `demo-group-${normalizeRoomPin(slug)}`
+}
+
+function slugFromDemoGroupId(groupId: string): string {
+  return groupId.replace(/^demo-group-/, '')
+}
+
+function getAccountsForDemoGroup(groupId: string): DemoAccount[] {
+  return ensureVirtualDemoAccounts(getAccounts(), slugFromDemoGroupId(groupId))
+}
+
 export function getDemoGroup(slug = getDefaultGroupSlug()): Group {
+  const roomPin = normalizeRoomPin(slug)
   return {
-    id: DEMO_GROUP_ID,
-    name: slug === 'mundial2026' ? 'Mundial 2026 Demo' : slug,
-    slug,
-    invite_code: DEMO_INVITE_CODE,
-    owner_id: DEMO_OWNER_ID,
+    id: demoGroupIdFromSlug(slug),
+    name: roomPin === '123456' ? 'Mundial 2026 Demo' : `Pokój ${roomPin}`,
+    slug: roomPin,
+    invite_code: roomPin,
+    owner_id: demoOwnerIdFromSlug(slug),
     bonus_deadline: '2026-06-11T17:00:00Z',
     created_at: '2026-01-01T00:00:00Z',
-    settings: {},
+    settings: { roomPin },
   }
 }
 
@@ -140,7 +234,7 @@ export function getDemoCurrentUser(): AppUser | null {
   const id = localStorage.getItem(`${DEMO_PREFIX}current_user_id`)
   if (!id) return null
   const account = getAccounts().find((item) => item.id === id)
-  return account ? accountToAppUser(account) : null
+  return account?.approved === false ? null : account ? accountToAppUser(account) : null
 }
 
 export async function demoSignUp(
@@ -148,30 +242,31 @@ export async function demoSignUp(
   inviteCode: string,
   nickname: string,
   password: string
-): Promise<{ error: string | null }> {
-  const expectedInvite = DEMO_INVITE_CODE
-  if (inviteCode && inviteCode !== expectedInvite) {
-    return { error: 'Nieprawidłowy kod zaproszenia w trybie demo. Użyj kodu demo.' }
+): Promise<{ error: string | null; pendingApproval?: boolean }> {
+  const group = getDemoGroup(groupSlug)
+  const expectedInvite = group.invite_code
+  if (inviteCode && inviteCode !== expectedInvite && inviteCode !== DEMO_INVITE_CODE) {
+    return { error: 'Nieprawidłowy PIN pokoju.' }
   }
 
   const accounts = getAccounts()
   const taken = accounts.some(
     (account) =>
-      account.groupSlug === groupSlug &&
+      demoGroupIdFromSlug(account.groupSlug) === group.id &&
       normalizedNickname(account.nickname) === normalizedNickname(nickname)
   )
   if (taken) return { error: 'Ten nick jest już zajęty w tej grupie.' }
 
   const account: DemoAccount = {
     id: `demo-${Date.now()}`,
-    groupSlug,
+    groupSlug: group.slug,
     nickname: nickname.trim(),
     password,
     role: 'player',
+    approved: false,
   }
   saveAccounts([...accounts, account])
-  localStorage.setItem(`${DEMO_PREFIX}current_user_id`, account.id)
-  return { error: null }
+  return { error: null, pendingApproval: true }
 }
 
 export async function demoSignIn(
@@ -179,19 +274,41 @@ export async function demoSignIn(
   nickname: string,
   password: string
 ): Promise<{ error: string | null }> {
-  const account = getAccounts().find(
+  const account = ensureDemoRoomAccounts(groupSlug).find(
     (item) =>
-      item.groupSlug === groupSlug &&
+      demoGroupIdFromSlug(item.groupSlug) === demoGroupIdFromSlug(groupSlug) &&
       normalizedNickname(item.nickname) === normalizedNickname(nickname) &&
       item.password === password
   )
   if (!account) return { error: 'Nieprawidłowy nick lub hasło.' }
+  if (account.approved === false) {
+    return { error: 'Konto czeka na zatwierdzenie przez admina pokoju.' }
+  }
   localStorage.setItem(`${DEMO_PREFIX}current_user_id`, account.id)
+  localStorage.setItem('mt_group_slug', getDemoGroup(groupSlug).slug)
   return { error: null }
 }
 
 export async function demoSignOut(): Promise<void> {
   localStorage.removeItem(`${DEMO_PREFIX}current_user_id`)
+}
+
+export function getDemoPendingAccounts(groupId: string): DemoAccount[] {
+  return getAccounts().filter(
+    (account) => demoGroupIdFromSlug(account.groupSlug) === groupId && account.approved === false
+  )
+}
+
+export function approveDemoAccount(accountId: string): void {
+  saveAccounts(
+    getAccounts().map((account) =>
+      account.id === accountId ? { ...account, approved: true } : account
+    )
+  )
+}
+
+export function rejectDemoAccount(accountId: string): void {
+  saveAccounts(getAccounts().filter((account) => account.id !== accountId))
 }
 
 function teamFromName(name: string, id: number): Team {
@@ -382,7 +499,7 @@ export function getDemoVisiblePredictions(matchId: number, groupId: string): Arr
   const match = getDemoMatchesWithResults().find((item) => item.id === matchId)
   if (!match || getAppNow() < new Date(match.kickoff_at)) return []
 
-  const accounts = getAccounts()
+  const accounts = getAccountsForDemoGroup(groupId)
   const { predictions, scores } = getDemoPredictionsWithScores(groupId)
   return predictions
     .filter((prediction) => prediction.match_id === matchId)
@@ -399,12 +516,12 @@ export function getDemoVisiblePredictions(matchId: number, groupId: string): Arr
 }
 
 export function getDemoLeaderboard(groupId: string): LeaderboardEntry[] {
-  const accounts = getAccounts()
+  const accounts = getAccountsForDemoGroup(groupId)
   const { predictions, scores } = getDemoPredictionsWithScores(groupId)
   const totalMatches = getDemoMatches().length
 
   return accounts
-    .filter((account) => account.groupSlug === getDefaultGroupSlug())
+    .filter((account) => demoGroupIdFromSlug(account.groupSlug) === groupId && account.approved !== false)
     .map((account) => {
       const userScores = scores.filter((score) => score.user_id === account.id)
       const exactScores = userScores.filter(
@@ -529,15 +646,40 @@ function seededGoals(seed: number): [number, number] {
   return [home, away]
 }
 
+function isVirtualDemoAccount(account: DemoAccount): boolean {
+  return account.id.startsWith('demo-virtual-')
+}
+
+function shouldVirtualAccountPredict(account: DemoAccount, matchId: number, accountIndex: number): boolean {
+  if (!isVirtualDemoAccount(account)) return true
+
+  const activityRates = [92, 88, 84, 80, 76, 72, 68, 64, 58, 52]
+  const activityRate = activityRates[accountIndex % activityRates.length]
+  const roll = (matchId * 37 + accountIndex * 23 + account.id.length * 11) % 100
+  return roll < activityRate
+}
+
 function ensureDemoPredictionsForMatch(groupId: string, match: Match): void {
-  const predictions = getDemoPredictions(groupId)
-  const accounts = getAccounts().filter((account) => account.groupSlug === getDefaultGroupSlug())
+  let predictions = getDemoPredictions(groupId)
+  const accounts = getAccountsForDemoGroup(groupId).filter(
+    (account) => demoGroupIdFromSlug(account.groupSlug) === groupId && account.approved !== false
+  )
   let changed = false
 
   accounts.forEach((account, index) => {
+    const shouldPredict = shouldVirtualAccountPredict(account, match.id, index)
     const exists = predictions.some(
       (prediction) => prediction.user_id === account.id && prediction.match_id === match.id
     )
+    if (!shouldPredict) {
+      if (exists) {
+        predictions = predictions.filter(
+          (prediction) => !(prediction.user_id === account.id && prediction.match_id === match.id)
+        )
+        changed = true
+      }
+      return
+    }
     if (exists) return
 
     const [homeGoals, awayGoals] = seededGoals(match.id + index)

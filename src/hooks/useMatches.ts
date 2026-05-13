@@ -5,14 +5,15 @@ import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh'
 import type { Match } from '@/types'
 
 const MATCH_TABLES = ['matches', 'match_results'] as const
+const DEMO_MATCH_REFRESH_MS = 1_000
 
 export function useMatches() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
+  const fetch = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true)
     if (isDemoMode()) {
       runDemoSimulationStep(getDemoGroup().id)
       setMatches(getDemoMatchesWithResults())
@@ -40,9 +41,21 @@ export function useMatches() {
   }, [])
 
   useEffect(() => {
-    fetch()
-    window.addEventListener('mt-demo-clock', fetch)
-    return () => window.removeEventListener('mt-demo-clock', fetch)
+    void fetch(true)
+    const handleDemoClock = () => {
+      void fetch()
+    }
+    window.addEventListener('mt-demo-clock', handleDemoClock)
+    const timer = isDemoMode()
+      ? window.setInterval(() => {
+          void fetch()
+        }, DEMO_MATCH_REFRESH_MS)
+      : undefined
+
+    return () => {
+      window.removeEventListener('mt-demo-clock', handleDemoClock)
+      if (timer) window.clearInterval(timer)
+    }
   }, [fetch])
   useRealtimeRefresh({
     channelName: 'matches-list',
@@ -50,7 +63,7 @@ export function useMatches() {
     onRefresh: fetch,
   })
 
-  return { matches, loading, error, refetch: fetch }
+  return { matches, loading, error, refetch: () => fetch() }
 }
 
 export function useMatch(matchId: number) {
@@ -82,10 +95,22 @@ export function useMatch(matchId: number) {
   }, [matchId])
 
   useEffect(() => {
-    fetch()
-    window.addEventListener('mt-demo-clock', fetch)
-    return () => window.removeEventListener('mt-demo-clock', fetch)
-  }, [fetch])
+    void fetch()
+    const handleDemoClock = () => {
+      void fetch()
+    }
+    window.addEventListener('mt-demo-clock', handleDemoClock)
+    const timer = isDemoMode() && matchId > 0
+      ? window.setInterval(() => {
+          void fetch()
+        }, DEMO_MATCH_REFRESH_MS)
+      : undefined
+
+    return () => {
+      window.removeEventListener('mt-demo-clock', handleDemoClock)
+      if (timer) window.clearInterval(timer)
+    }
+  }, [fetch, matchId])
   useRealtimeRefresh({
     channelName: `match-${matchId}`,
     tables: [...MATCH_TABLES],

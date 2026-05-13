@@ -33,15 +33,15 @@ export function Input({
       )}
       <div className="relative">
         {icon && (
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
             {icon}
           </span>
         )}
         <input
           id={inputId}
           className={cn(
-            'w-full bg-white/8 border border-white/12 rounded-2xl',
-            'text-white placeholder:text-white/25',
+            'app-input w-full bg-white border border-slate-200 rounded-2xl',
+            'text-slate-950 placeholder:text-slate-500 caret-slate-950',
             'px-4 py-3.5 text-base sm:text-sm',
             'transition-all duration-200',
             'focus:outline-none focus:border-blue-300/55 focus:ring-2 focus:ring-blue-400/20',
@@ -54,7 +54,7 @@ export function Input({
           {...props}
         />
         {suffix && (
-          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
+          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
             {suffix}
           </span>
         )}

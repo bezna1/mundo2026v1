@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { signIn } from '@/lib/auth'
+import { useAuth } from '@/hooks/useAuth'
 import { User, Lock } from 'lucide-react'
 
 interface LoginFormProps {
@@ -10,6 +11,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ groupSlug, onSuccess }: LoginFormProps) {
+  const { refreshUser } = useAuth()
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,6 +27,7 @@ export function LoginForm({ groupSlug, onSuccess }: LoginFormProps) {
     if (error) {
       setError(error)
     } else {
+      await refreshUser()
       onSuccess()
     }
   }
@@ -66,6 +69,10 @@ export function LoginForm({ groupSlug, onSuccess }: LoginFormProps) {
       >
         Zaloguj się
       </Button>
+      <p className="text-xs text-white/35 text-center">
+        Tymczasowy admin: <span className="font-semibold text-white/65">Admin</span> /{' '}
+        <span className="font-semibold text-white/65">admin123</span>
+      </p>
     </form>
   )
 }

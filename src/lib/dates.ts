@@ -17,6 +17,10 @@ export function formatMatchDate(utcString: string): string {
   return formatInTimeZone(utcString, WARSAW, 'EEEE, d MMMM', { locale: pl })
 }
 
+export function formatMatchDateWithYear(utcString: string): string {
+  return formatInTimeZone(utcString, WARSAW, 'EEEE, d MMMM yyyy', { locale: pl })
+}
+
 export function formatMatchTimeOnly(utcString: string): string {
   return formatInTimeZone(utcString, WARSAW, 'HH:mm', { locale: pl })
 }

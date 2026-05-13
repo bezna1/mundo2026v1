@@ -200,7 +200,7 @@ function BonusCard({ bonusType, currentValue, points, locked, onSave }: BonusCar
                 )}
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                    Anuluj
+                    Powrót
                   </Button>
                   <Button variant="primary" size="sm" loading={saving} onClick={handleSave} className="flex-1">
                     Zapisz

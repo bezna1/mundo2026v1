@@ -1,10 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useMatches } from '@/hooks/useMatches'
 import {
   getDemoCurrentUser,
+  approveDemoAccount,
+  getDemoPendingAccounts,
   isDemoMode,
   isDemoSimulationEnabled,
+  rejectDemoAccount,
   runDemoSimulationStep,
   saveDemoResult,
   setDemoSimulationEnabled,
@@ -31,15 +34,39 @@ function fromLocalInputValue(value: string): string {
   return new Date(value).toISOString()
 }
 
-function DemoSimulationPanel({ groupId, onChanged }: { groupId: string; onChanged: () => void }) {
+function DemoSimulationPanel({
+  groupId,
+  matches,
+  onChanged,
+}: {
+  groupId: string
+  matches: Match[]
+  onChanged: () => void
+}) {
   const [clockValue, setClockValue] = useState(() => toLocalInputValue(getDemoClockIso()))
   const [enabled, setEnabled] = useState(() => isDemoSimulationEnabled())
+  const debugMatches = useMemo(
+    () => [...matches].sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime()),
+    [matches]
+  )
+  const [debugMatchId, setDebugMatchId] = useState(() => String(debugMatches[0]?.id ?? ''))
+  const debugMatch = debugMatches.find((match) => String(match.id) === debugMatchId) ?? debugMatches[0]
+
+  useEffect(() => {
+    if (!debugMatchId && debugMatches[0]) {
+      setDebugMatchId(String(debugMatches[0].id))
+    }
+  }, [debugMatchId, debugMatches])
 
   const applyClock = (value: string) => {
     setClockValue(value)
     setDemoClockIso(fromLocalInputValue(value))
     runDemoSimulationStep(groupId)
     onChanged()
+  }
+
+  const applyClockIso = (iso: string) => {
+    applyClock(toLocalInputValue(iso))
   }
 
   const shiftClock = (hours: number) => {
@@ -56,6 +83,15 @@ function DemoSimulationPanel({ groupId, onChanged }: { groupId: string; onChange
     onChanged()
   }
 
+  const enableDebugAndApply = (iso: string) => {
+    setEnabled(true)
+    setDemoSimulationEnabled(true)
+    setDemoClockIso(iso)
+    setClockValue(toLocalInputValue(iso))
+    runDemoSimulationStep(groupId)
+    onChanged()
+  }
+
   const resetClock = () => {
     clearDemoClock()
     setClockValue(toLocalInputValue(getDemoClockIso()))
@@ -65,7 +101,7 @@ function DemoSimulationPanel({ groupId, onChanged }: { groupId: string; onChange
   return (
     <Card variant="gold">
       <CardHeader>
-        <h2 className="premium-heading text-sm font-bold text-gold-200">Symulacja demo</h2>
+        <h2 className="premium-heading text-sm font-bold text-gold-200">Tryb debugowania admina</h2>
       </CardHeader>
       <CardBody className="flex flex-col gap-3">
         <div>
@@ -74,8 +110,52 @@ function DemoSimulationPanel({ groupId, onChanged }: { groupId: string; onChange
             type="datetime-local"
             value={clockValue}
             onChange={(event) => applyClock(event.target.value)}
-            className="w-full bg-white/8 border border-white/12 rounded-2xl px-4 py-3.5 text-base sm:text-sm text-white focus:outline-none focus:border-blue-300/55 focus:ring-2 focus:ring-blue-400/20"
+            className="app-input w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-base sm:text-sm text-slate-950 caret-slate-950 focus:outline-none focus:border-blue-300/55 focus:ring-2 focus:ring-blue-400/20"
           />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <p className="text-xs font-semibold text-white/54 mb-2">Szybki test konkretnego meczu</p>
+          <select
+            value={debugMatchId}
+            onChange={(event) => setDebugMatchId(event.target.value)}
+            className="w-full appearance-none rounded-2xl border border-white/12 px-3 py-2.5 text-sm font-semibold focus:outline-none focus:border-blue-300/55 focus:ring-2 focus:ring-blue-400/20"
+            style={{ background: 'var(--surface)', color: 'var(--text)' }}
+          >
+            {debugMatches.slice(0, 20).map((match) => (
+              <option key={match.id} value={match.id} style={{ color: '#102033' }}>
+                #{match.id} {match.home_team?.name ?? match.home_team_placeholder} - {match.away_team?.name ?? match.away_team_placeholder}
+              </option>
+            ))}
+          </select>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!debugMatch}
+              onClick={() => {
+                if (!debugMatch) return
+                const kickoff = new Date(debugMatch.kickoff_at)
+                kickoff.setMinutes(kickoff.getMinutes() + 1)
+                applyClockIso(kickoff.toISOString())
+              }}
+            >
+              Pierwszy gwizdek
+            </Button>
+            <Button
+              variant="gold"
+              size="sm"
+              disabled={!debugMatch}
+              onClick={() => {
+                if (!debugMatch) return
+                const afterMatch = new Date(debugMatch.kickoff_at)
+                afterMatch.setMinutes(afterMatch.getMinutes() + 121)
+                enableDebugAndApply(afterMatch.toISOString())
+              }}
+            >
+              Po meczu + wyniki
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
@@ -112,8 +192,10 @@ function DemoSimulationPanel({ groupId, onChanged }: { groupId: string; onChange
         </div>
 
         <p className="text-xs text-white/42">
-          W demo zakończone mecze dostają automatyczne wyniki, typy testowych graczy i punkty
-          do sprawdzania rankingu, szczegółów meczu oraz statystyk.
+          Debug działa tylko w trybie demo. „Symulacja włączona” automatycznie generuje typy
+          wirtualnych graczy i wyniki zakończonych meczów wraz z upływem czasu aplikacji.
+          „Przelicz demo” uruchamia ten sam krok ręcznie od razu, np. po zmianie godziny.
+          Część wirtualnych graczy celowo nie typuje wszystkich meczów.
         </p>
       </CardBody>
     </Card>
@@ -384,8 +466,20 @@ export function AdminPage() {
   const { matches, loading, refetch } = useMatches()
   const [expanded, setExpanded] = useState<number | null>(null)
   const [search, setSearch] = useState('')
+  const [pendingAccounts, setPendingAccounts] = useState(() =>
+    appUser?.group.id && isDemoMode() ? getDemoPendingAccounts(appUser.group.id) : []
+  )
 
   const isAdmin = appUser?.member.role === 'admin' || appUser?.member.role === 'owner'
+
+  const refreshPending = () => {
+    if (!appUser?.group.id || !isDemoMode()) return
+    setPendingAccounts(getDemoPendingAccounts(appUser.group.id))
+  }
+
+  useEffect(() => {
+    refreshPending()
+  }, [appUser?.group.id])
 
   const startedMatches = useMemo(() =>
     matches.filter((m) => isMatchStarted(m.kickoff_at))
@@ -404,7 +498,7 @@ export function AdminPage() {
     )
   }
 
-  const inviteUrl = `${window.location.origin}/?g=${appUser?.group.slug}&i=${appUser?.group.invite_code}`
+  const inviteUrl = `${window.location.origin}${import.meta.env.BASE_URL}?g=${appUser?.group.slug}&i=${appUser?.group.invite_code}`
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
@@ -443,13 +537,58 @@ export function AdminPage() {
           </div>
           <div>
             <p className="text-xs text-white/40">Kod zaproszenia: <span className="font-bold text-white/60">{appUser?.group.invite_code}</span></p>
+            <p className="text-xs text-white/40 mt-1">PIN pokoju: <span className="font-bold text-white/60">{appUser?.group.invite_code}</span></p>
           </div>
         </CardBody>
       </Card>
 
+      {isDemoMode() && pendingAccounts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <h2 className="premium-heading text-sm font-bold text-white">Oczekujące zgłoszenia</h2>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-2">
+            {pendingAccounts.map((account) => (
+              <div
+                key={account.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{account.nickname}</p>
+                  <p className="text-xs text-white/36">Czeka na zatwierdzenie dostępu do pokoju</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      rejectDemoAccount(account.id)
+                      refreshPending()
+                    }}
+                  >
+                    Odrzuć
+                  </Button>
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    onClick={() => {
+                      approveDemoAccount(account.id)
+                      refreshPending()
+                    }}
+                  >
+                    Zatwierdź
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardBody>
+        </Card>
+      )}
+
       {isDemoMode() && appUser?.group.id && (
         <DemoSimulationPanel
           groupId={appUser.group.id}
+          matches={matches}
           onChanged={() => {
             refetch()
           }}

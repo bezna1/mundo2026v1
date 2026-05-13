@@ -37,9 +37,9 @@ export function Countdown({ kickoffUtc, className }: CountdownProps) {
     <span
       className={cn(
         'text-xs font-mono font-semibold tabular-nums',
-        urgency === 'normal' && 'text-white/50',
-        urgency === 'warning' && 'text-yellow-400',
-        urgency === 'critical' && 'text-accent-red animate-pulse',
+        urgency === 'normal' && 'countdown-normal',
+        urgency === 'warning' && 'countdown-warning',
+        urgency === 'critical' && 'countdown-critical animate-pulse',
         className
       )}
     >

@@ -7,7 +7,7 @@ interface BottomNavProps {
 }
 
 const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Start' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Menu' },
   { to: '/matches', icon: CalendarDays, label: 'Mecze' },
   { to: '/leaderboard', icon: Trophy, label: 'Ranking' },
   { to: '/bonuses', icon: Star, label: 'Bonusy' },

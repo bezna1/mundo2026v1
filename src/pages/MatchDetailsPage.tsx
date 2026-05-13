@@ -8,7 +8,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { formatMatchDate, formatMatchTimeOnly, isMatchStarted } from '@/lib/dates'
 import { getFlag } from '@/data/fixtures'
-import { getOutcomeLabel, cn } from '@/lib/utils'
+import { getOutcomeDisplayLabel, getOutcomeLabel, cn } from '@/lib/utils'
 import { ChevronLeft, MapPin, Clock } from 'lucide-react'
 
 export function MatchDetailsPage() {
@@ -160,6 +160,7 @@ export function MatchDetailsPage() {
                   {(['1', 'X', '2'] as const).map((o) => {
                     const count = outcomeDistribution[o] ?? 0
                     const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                    const label = getOutcomeDisplayLabel(o, homeName, awayName)
                     return (
                       <div key={o} className="flex-1">
                         <div
@@ -170,7 +171,7 @@ export function MatchDetailsPage() {
                             o === '2' && 'border-orange-500/30 bg-orange-500/10 text-orange-400'
                           )}
                         >
-                          <div className="text-base">{o}</div>
+                          <div className="text-[11px] leading-tight">{label}</div>
                           <div className="text-[10px] opacity-70">{pct}%</div>
                         </div>
                       </div>
@@ -213,7 +214,9 @@ export function MatchDetailsPage() {
                         <span className="text-sm font-bold text-white">
                           {p.home_goals} : {p.away_goals}
                         </span>
-                        <Badge variant="outcome" outcome={o} size="sm">{o}</Badge>
+                        <Badge variant="outcome" outcome={o} size="sm">
+                          {getOutcomeDisplayLabel(o, homeName, awayName)}
+                        </Badge>
                         {hasResult && p.total_points != null && (
                           <span
                             className={cn(

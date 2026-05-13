@@ -58,6 +58,16 @@ export function getOutcomeLabel(home: number, away: number): '1' | 'X' | '2' {
   return 'X'
 }
 
+export function getOutcomeDisplayLabel(
+  outcome: '1' | 'X' | '2',
+  firstTeamName?: string,
+  secondTeamName?: string
+): string {
+  if (outcome === 'X') return 'Remis'
+  if (outcome === '1') return firstTeamName ?? 'Pierwsza drużyna'
+  return secondTeamName ?? 'Druga drużyna'
+}
+
 export function copyToClipboard(text: string): Promise<void> {
   return navigator.clipboard.writeText(text)
 }

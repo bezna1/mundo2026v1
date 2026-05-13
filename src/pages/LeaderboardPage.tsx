@@ -52,7 +52,7 @@ export function LeaderboardPage() {
         {[
           { label: 'Dokładny wynik', pts: '5 pkt', color: 'text-gold-400' },
           { label: 'Wynik + różnica', pts: '3 pkt', color: 'text-blue-400' },
-          { label: 'Poprawny rezultat', pts: '2 pkt', color: 'text-green-400' },
+          { label: 'Zwycięzca lub remis', pts: '2 pkt', color: 'text-green-400' },
         ].map(({ label, pts, color }) => (
           <div key={label} className="glass rounded-2xl border border-white/10 px-3.5 py-2.5 shrink-0">
             <div className={`text-xs font-bold ${color}`}>{pts}</div>

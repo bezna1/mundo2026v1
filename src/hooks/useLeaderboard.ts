@@ -57,7 +57,21 @@ export function useLeaderboard(groupId: string | undefined) {
     setLoading(false)
   }, [groupId])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => {
+    void fetch()
+    if (!isDemoMode()) return
+
+    const handleDemoClock = () => {
+      void fetch()
+    }
+    window.addEventListener('mt-demo-clock', handleDemoClock)
+    const timer = window.setInterval(handleDemoClock, 1_000)
+
+    return () => {
+      window.removeEventListener('mt-demo-clock', handleDemoClock)
+      window.clearInterval(timer)
+    }
+  }, [fetch])
   useRealtimeRefresh({
     channelName: groupId ? `leaderboard-${groupId}` : 'leaderboard',
     tables: [...LEADERBOARD_TABLES],

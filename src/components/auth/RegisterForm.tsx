@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { signUp } from '@/lib/auth'
+import { useAuth } from '@/hooks/useAuth'
 import { User, Lock, CheckCircle } from 'lucide-react'
 
 interface RegisterFormProps {
@@ -11,15 +12,18 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ groupSlug, inviteCode, onSuccess }: RegisterFormProps) {
+  const { refreshUser } = useAuth()
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setNotice('')
 
     if (!nickname.trim()) return setError('Podaj nick.')
     if (nickname.trim().length < 2) return setError('Nick musi mieć min. 2 znaki.')
@@ -28,13 +32,21 @@ export function RegisterForm({ groupSlug, inviteCode, onSuccess }: RegisterFormP
     if (password !== confirm) return setError('Hasła nie są identyczne.')
 
     setLoading(true)
-    const { error: signUpError } = await signUp(groupSlug, inviteCode, nickname.trim(), password)
+    const result = await signUp(groupSlug, inviteCode, nickname.trim(), password)
+    const signUpError = result.error
     if (signUpError) {
       setLoading(false)
       return setError(signUpError)
     }
 
     setLoading(false)
+    if (result.pendingApproval) {
+      setNotice('Zgłoszenie wysłane. Admin pokoju musi zatwierdzić konto przed logowaniem.')
+      setPassword('')
+      setConfirm('')
+      return
+    }
+    await refreshUser()
     onSuccess()
   }
 
@@ -82,6 +94,11 @@ export function RegisterForm({ groupSlug, inviteCode, onSuccess }: RegisterFormP
       {error && (
         <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p className="text-sm text-green-300 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+          {notice}
         </p>
       )}
       <Button

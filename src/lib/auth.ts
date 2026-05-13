@@ -17,7 +17,7 @@ export async function signUp(
   inviteCode: string,
   nickname: string,
   password: string
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; pendingApproval?: boolean }> {
   if (isDemoMode()) {
     const result = await demoSignUp(groupSlug, inviteCode, nickname, password)
     window.dispatchEvent(new Event('mt-demo-auth'))

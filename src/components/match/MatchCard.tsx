@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ScoreInput } from './ScoreInput'
 import { Countdown } from './Countdown'
-import { formatMatchTime, formatMatchDate, isMatchStarted } from '@/lib/dates'
+import { formatMatchTime, formatMatchDate, formatMatchTimeOnly, isMatchStarted } from '@/lib/dates'
 import { getFlag } from '@/data/fixtures'
 import { isKnockoutPhase } from '@/data/scoringRules'
-import { getOutcomeLabel, cn } from '@/lib/utils'
+import { getOutcomeDisplayLabel, getOutcomeLabel, cn } from '@/lib/utils'
 import type { Match, Prediction, PredictionScore, Resolution } from '@/types'
 
 interface MatchCardProps {
@@ -62,8 +62,8 @@ export function MatchCard({
 
   const handleSave = async () => {
     if (!onSave) return
-    const h = parseInt(homeGoals, 10)
-    const a = parseInt(awayGoals, 10)
+    const h = homeGoals === '' ? 0 : parseInt(homeGoals, 10)
+    const a = awayGoals === '' ? 0 : parseInt(awayGoals, 10)
     if (isNaN(h) || isNaN(a)) return
     setSaving(true)
     try {
@@ -74,6 +74,7 @@ export function MatchCard({
         resolutionPrediction,
       })
       setSaved(true)
+      setExpanded(false)
       setTimeout(() => setSaved(false), 2000)
     } finally {
       setSaving(false)
@@ -102,10 +103,15 @@ export function MatchCard({
       )}
     >
       {/* Stage + time header */}
-      <div className="relative flex items-center justify-between px-5 pt-4 pb-0">
-        <span className="text-[11px] font-bold text-white/42 uppercase tracking-wider">
-          {match.stage}
-        </span>
+      <div className="relative flex items-start justify-between gap-3 px-4 sm:px-5 pt-4 pb-0">
+        <div className="min-w-0">
+          <span className="block text-[11px] font-bold text-white/42 uppercase tracking-wider">
+            {match.stage}
+          </span>
+          <span className="block mt-1 text-[11px] font-semibold text-white/34 truncate">
+            {formatMatchDate(match.kickoff_at)}, {formatMatchTimeOnly(match.kickoff_at)}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           {!started && <Countdown kickoffUtc={match.kickoff_at} />}
           {match.status === 'live' && (
@@ -118,7 +124,7 @@ export function MatchCard({
       </div>
 
       {/* Main score row */}
-      <Link to={`/matches/${match.id}`} className="relative block px-5 py-4">
+      <Link to={`/matches/${match.id}`} className="relative block px-4 sm:px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           {/* Home */}
           <div className="flex flex-col items-start gap-1 flex-1 min-w-0">
@@ -141,7 +147,7 @@ export function MatchCard({
             )}
             {resultOutcome && (
               <Badge variant="outcome" outcome={resultOutcome} size="sm">
-                {resultOutcome}
+                {getOutcomeDisplayLabel(resultOutcome, homeName, awayName)}
               </Badge>
             )}
           </div>
@@ -156,17 +162,22 @@ export function MatchCard({
 
       {/* Prediction row */}
       {!compact && (
-        <div className="relative px-5 pb-4 border-t border-white/8 pt-4">
+        <div className="relative px-4 sm:px-5 pb-4 border-t border-white/8 pt-4">
           {canPredict ? (
             <div className="flex flex-col gap-3">
               {!expanded ? (
                 <button
                   onClick={() => setExpanded(true)}
-                  className="w-full py-3 text-sm font-bold text-blue-200 border border-blue-400/24 rounded-2xl bg-blue-400/8 hover:border-blue-300/42 hover:text-white transition-all"
+                  className={cn(
+                    'w-full py-3 text-sm font-bold rounded-2xl border transition-all',
+                    prediction != null
+                      ? 'my-result-selected text-green-200 border-green-300/38 bg-green-400/12 hover:border-green-300/58'
+                      : 'text-blue-200 border-blue-400/24 bg-blue-400/8 hover:border-blue-300/42 hover:text-white'
+                  )}
                 >
                   {prediction != null
-                    ? `Mój typ: ${prediction.home_goals} : ${prediction.away_goals} — edytuj`
-                    : '+ Dodaj typ'}
+                    ? `Mój wynik: ${prediction.home_goals} : ${prediction.away_goals} — edytuj`
+                    : '+ Dodaj wynik'}
                 </button>
               ) : (
                 <>
@@ -192,7 +203,7 @@ export function MatchCard({
                       onClick={() => setExpanded(false)}
                       className="flex-1"
                     >
-                      Anuluj
+                      Powrót
                     </Button>
                     <Button
                       variant="primary"
@@ -201,7 +212,7 @@ export function MatchCard({
                       onClick={handleSave}
                       className="flex-1"
                     >
-                      {saved ? '✓ Zapisano' : 'Zapisz typ'}
+                      {saved ? '✓ Zapisano' : 'Zapisz wynik'}
                     </Button>
                   </div>
                 </>
@@ -212,13 +223,13 @@ export function MatchCard({
               <div className="flex items-center gap-2">
                 {prediction != null ? (
                   <>
-                  <span className="text-xs text-white/40">Mój typ:</span>
+                  <span className="text-xs text-white/40">Mój wynik:</span>
                     <span className="text-sm font-bold text-green-300">
                       {prediction.home_goals} : {prediction.away_goals}
                     </span>
                     {predOutcome && (
                       <Badge variant="outcome" outcome={predOutcome} size="sm">
-                        {predOutcome}
+                        {getOutcomeDisplayLabel(predOutcome, homeName, awayName)}
                       </Badge>
                     )}
                   </>

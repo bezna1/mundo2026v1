@@ -67,40 +67,45 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   )
 }
 
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: (
-      <AppProviders>
-        <InvitePage />
-      </AppProviders>
-    ),
-  },
-  {
-    path: '/',
-    element: (
-      <AppProviders>
-        <RequireAuth>
-          <Layout />
-        </RequireAuth>
-      </AppProviders>
-    ),
-    children: [
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'matches', element: <MatchesPage /> },
-      { path: 'matches/:matchId', element: <MatchDetailsPage /> },
-      { path: 'leaderboard', element: <LeaderboardPage /> },
-      { path: 'bonuses', element: <BonusesPage /> },
-      { path: 'stats', element: <StatsPage /> },
-      { path: 'rules', element: <RulesPage /> },
-      { path: 'admin', element: <AdminPage /> },
-    ],
-  },
-  {
-    path: '*',
-    element: <Navigate to="/" replace />,
-  },
-])
+const basename = import.meta.env.BASE_URL === '/' ? '/' : import.meta.env.BASE_URL.replace(/\/$/, '')
+
+const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: (
+        <AppProviders>
+          <InvitePage />
+        </AppProviders>
+      ),
+    },
+    {
+      path: '/',
+      element: (
+        <AppProviders>
+          <RequireAuth>
+            <Layout />
+          </RequireAuth>
+        </AppProviders>
+      ),
+      children: [
+        { path: 'dashboard', element: <DashboardPage /> },
+        { path: 'matches', element: <MatchesPage /> },
+        { path: 'matches/:matchId', element: <MatchDetailsPage /> },
+        { path: 'leaderboard', element: <LeaderboardPage /> },
+        { path: 'bonuses', element: <BonusesPage /> },
+        { path: 'stats', element: <StatsPage /> },
+        { path: 'rules', element: <RulesPage /> },
+        { path: 'admin', element: <AdminPage /> },
+      ],
+    },
+    {
+      path: '*',
+      element: <Navigate to="/" replace />,
+    },
+  ],
+  { basename }
+)
 
 export function App() {
   return <RouterProvider router={router} />

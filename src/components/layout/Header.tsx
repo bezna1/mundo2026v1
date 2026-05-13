@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from '@/lib/auth'
 import { nicknameToInitials } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { LogOut, Trophy } from 'lucide-react'
 
 export function Header() {
@@ -32,6 +33,7 @@ export function Header() {
 
         {appUser && (
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <div className="hidden sm:flex items-center gap-2 glass rounded-2xl px-3 py-2 border border-white/10 shadow-none">
               <div className="w-7 h-7 rounded-full bg-gold-300/16 border border-gold-300/30 flex items-center justify-center">
                 <span className="text-[10px] font-bold text-gold-200">
